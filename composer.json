@@ -1,5 +1,5 @@
 {
-    "name": "pantera/laravel-cron-mailer",
+    "name": "bagoespantera/laravel-cron-mailer",
     "description": "Queue e-mails into the database and deliver them from a scheduled console worker.",
     "keywords": ["laravel", "mail", "queue", "cron", "mailable"],
     "license": "MIT",
@@ -15,7 +15,7 @@
     },
     "autoload": {
         "psr-4": {
-            "Pantera\\CronMailer\\": "src/"
+            "BagoesPantera\\CronMailer\\": "src/"
         },
         "files": [
             "src/Helpers/helpers.php"
@@ -23,13 +23,13 @@
     },
     "autoload-dev": {
         "psr-4": {
-            "Pantera\\CronMailer\\Tests\\": "tests/"
+            "BagoesPantera\\CronMailer\\Tests\\": "tests/"
         }
     },
     "extra": {
         "laravel": {
             "providers": [
-                "Pantera\\CronMailer\\CronMailerServiceProvider"
+                "BagoesPantera\\CronMailer\\CronMailerServiceProvider"
             ]
         }
     },

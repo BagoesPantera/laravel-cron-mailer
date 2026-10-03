@@ -1,6 +1,6 @@
 <?php
 
-namespace Pantera\CronMailer\Services;
+namespace BagoesPantera\CronMailer\Services;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Mail\Mailable;

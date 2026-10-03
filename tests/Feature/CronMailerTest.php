@@ -1,13 +1,13 @@
 <?php
 
-namespace Pantera\CronMailer\Tests\Feature;
+namespace BagoesPantera\CronMailer\Tests\Feature;
 
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Mail;
-use Pantera\CronMailer\Tests\Fixtures\OrderShipped;
-use Pantera\CronMailer\Tests\Fixtures\User;
-use Pantera\CronMailer\Tests\Fixtures\WelcomeBack;
-use Pantera\CronMailer\Tests\TestCase;
+use BagoesPantera\CronMailer\Tests\Fixtures\OrderShipped;
+use BagoesPantera\CronMailer\Tests\Fixtures\User;
+use BagoesPantera\CronMailer\Tests\Fixtures\WelcomeBack;
+use BagoesPantera\CronMailer\Tests\TestCase;
 use PHPUnit\Framework\Attributes\Test;
 
 class CronMailerTest extends TestCase
@@ -121,7 +121,6 @@ class CronMailerTest extends TestCase
     {
         $user = User::create(['name' => 'Ada', 'email' => 'ada@example.com']);
 
-        // A model reference that can no longer be resolved must fail the row.
         DB::table('pending_emails')->insert([
             'recipient_email' => $user->email,
             'mailable_class' => OrderShipped::class,

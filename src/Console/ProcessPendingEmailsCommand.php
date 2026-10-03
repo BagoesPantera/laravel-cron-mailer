@@ -1,6 +1,6 @@
 <?php
 
-namespace Pantera\CronMailer\Console;
+namespace BagoesPantera\CronMailer\Console;
 
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\DB;

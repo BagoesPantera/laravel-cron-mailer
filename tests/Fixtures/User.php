@@ -1,6 +1,6 @@
 <?php
 
-namespace Pantera\CronMailer\Tests\Fixtures;
+namespace BagoesPantera\CronMailer\Tests\Fixtures;
 
 use Illuminate\Database\Eloquent\Model;
 

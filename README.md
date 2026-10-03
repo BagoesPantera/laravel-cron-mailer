@@ -3,14 +3,14 @@
 A database-driven outbox mailer for Laravel without queue workers. Send asynchronous e-mails seamlessly via Laravel Scheduler (Cron).
 
 <p align="center">
-  <a href="https://packagist.org/packages/pantera/laravel-cron-mailer">
-    <img src="https://img.shields.io/packagist/v/pantera/laravel-cron-mailer?label=Latest%20Version" alt="Latest Version">
+  <a href="https://packagist.org/packages/bagoespantera/laravel-cron-mailer">
+    <img src="https://img.shields.io/packagist/v/bagoespantera/laravel-cron-mailer?label=Latest%20Version" alt="Latest Version">
   </a>
-  <a href="https://github.com/pantera/laravel-cron-mailer/blob/master/LICENSE">
-    <img src="https://img.shields.io/packagist/l/pantera/laravel-cron-mailer?label=License" alt="License: MIT">
+  <a href="https://github.com/bagoespantera/laravel-cron-mailer/blob/master/LICENSE">
+    <img src="https://img.shields.io/packagist/l/bagoespantera/laravel-cron-mailer?label=License" alt="License: MIT">
   </a>
-  <a href="https://packagist.org/packages/pantera/laravel-cron-mailer">
-    <img src="https://img.shields.io/packagist/dt/pantera/laravel-cron-mailer?label=Total%20Downloads" alt="Total Downloads">
+  <a href="https://packagist.org/packages/bagoespantera/laravel-cron-mailer">
+    <img src="https://img.shields.io/packagist/dt/bagoespantera/laravel-cron-mailer?label=Total%20Downloads" alt="Total Downloads">
   </a>
 </p>
 
@@ -20,24 +20,24 @@ A database-driven outbox mailer for Laravel without queue workers. Send asynchro
 
 - **Zero Queue Worker Setup** — No Redis, no Supervisor, no `queue:work` daemon required. E-mails are stored in your existing database and delivered straight from the scheduler.
 - **Non-Blocking Enqueueing** — The global `queueMail()` helper writes to your DB inside a try-catch, reports failures via Laravel's `report()`, and never bubbles an exception up to the HTTP request.
-- **Auto-Serialization via Reflection & Public Property Hydration** — Every public property of your mailable is captured. Eloquent models are stored as `[class, primary key]` pairs and reloaded with fresh data at send time via `findOrFail()`. Supports both constructor property promotion _and_ free-form public properties.
+- **Auto-Serialization via Reflection & Public Property Hydration** — Every public property of your mailable is captured. Eloquent models are stored as `[class, primary key]` pairs and reloaded with fresh data at send time via `findOrFail()`. Supports both constructor property promotion *and* free-form public properties.
 - **Automatic Retry & Per-Row Isolation** — A failure for one recipient increments its `attempts` counter, captures the exception message, and moves on. A broken row never blocks the rest of the batch.
 - **Laravel 10 – 13 Compatibility** — A single package version runs on Laravel 10, 11, 12, and 13 thanks to a wide `illuminate/*` constraint matrix.
 
 ## Requirements
 
-| Dependency | Constraint                                                                 |
-| ---------- | -------------------------------------------------------------------------- |
-| PHP        | `^8.2`                                                                     |
-| Laravel    | `^10.0 \|\| ^11.0 \|\| ^12.0 \|\| ^13.0`                                   |
-| Database   | Any PDO driver supported by Laravel (`mysql`, `pgsql`, `sqlite`, `sqlsrv`) |
+| Dependency | Constraint |
+|---|---|
+| PHP | `^8.2` |
+| Laravel | `^10.0 \|\| ^11.0 \|\| ^12.0 \|\| ^13.0` |
+| Database | Any PDO driver supported by Laravel (`mysql`, `pgsql`, `sqlite`, `sqlsrv`) |
 
 ## Installation
 
 ### Step 1 — Install via Composer
 
 ```bash
-composer require pantera/laravel-cron-mailer
+composer require bagoespantera/laravel-cron-mailer
 ```
 
 The [CronMailerServiceProvider](src/CronMailerServiceProvider.php) is registered automatically through Laravel's package discovery.
@@ -45,7 +45,7 @@ The [CronMailerServiceProvider](src/CronMailerServiceProvider.php) is registered
 ### Step 2 — Publish Configuration & Migration
 
 ```bash
-php artisan vendor:publish --provider="Pantera\\CronMailer\\CronMailerServiceProvider"
+php artisan vendor:publish --provider="BagoesPantera\CronMailer\CronMailerServiceProvider"
 ```
 
 This copies:
@@ -67,11 +67,11 @@ This creates the outbox table. Its name follows the value of `cron-mailer.table_
 
 All configuration lives in [config/cron-mailer.php](config/cron-mailer.php). After publishing the file, the following options are available:
 
-| Key            | Default            | Description                                                                                                                    |
-| -------------- | ------------------ | ------------------------------------------------------------------------------------------------------------------------------ |
-| `table_name`   | `'pending_emails'` | Database table used as the outbox. The migration reads this key dynamically, so rename it freely before running `migrate`.     |
-| `max_attempts` | `3`                | Hard cap on delivery attempts. Once a row's `attempts` column reaches this value the worker skips it permanently.              |
-| `batch_size`   | `10`               | Maximum number of rows pulled from the outbox on every worker run. Keep it small enough to stay inside the scheduler's window. |
+| Key | Default | Description |
+|---|---|---|
+| `table_name` | `'pending_emails'` | Database table used as the outbox. The migration reads this key dynamically, so rename it freely before running `migrate`. |
+| `max_attempts` | `3` | Hard cap on delivery attempts. Once a row's `attempts` column reaches this value the worker skips it permanently. |
+| `batch_size` | `10` | Maximum number of rows pulled from the outbox on every worker run. Keep it small enough to stay inside the scheduler's window. |
 
 ## Usage Guide
 
@@ -187,9 +187,8 @@ Schedule::command('cron-mail:process')
 #### Worker Selection Criteria
 
 Each run selects rows matching:
-
 - `status = 'pending'` **OR** `(status = 'failed' AND attempts < max_attempts)`,
-  ordered by `created_at ASC`, limited to `batch_size` (or `--limit`).
+ordered by `created_at ASC`, limited to `batch_size` (or `--limit`).
 
 The composite index `['status', 'attempts', 'created_at']` in the migration keeps this query cheap even on very large outboxes.
 
@@ -211,7 +210,6 @@ OK (10 tests, 34 assertions)
 ```
 
 The suite covers:
-
 - single-recipient & multi-recipient enqueue
 - correct payload shape for Eloquent models vs. scalars
 - fail-safe behaviour when the outbox table is missing
