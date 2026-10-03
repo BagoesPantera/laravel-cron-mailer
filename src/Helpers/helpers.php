@@ -2,7 +2,7 @@
 
 use Illuminate\Mail\Mailable;
 use Illuminate\Support\Facades\DB;
-use Pantera\CronMailer\Services\MailableSerializer;
+use BagoesPantera\CronMailer\Services\MailableSerializer;
 
 if (! function_exists('queueMail')) {
     /**

@@ -1,9 +1,9 @@
 <?php
 
-namespace Pantera\CronMailer;
+namespace BagoesPantera\CronMailer;
 
 use Illuminate\Support\ServiceProvider;
-use Pantera\CronMailer\Console\ProcessPendingEmailsCommand;
+use BagoesPantera\CronMailer\Console\ProcessPendingEmailsCommand;
 
 class CronMailerServiceProvider extends ServiceProvider
 {

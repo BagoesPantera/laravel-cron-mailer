@@ -1,11 +1,11 @@
 <?php
 
-namespace Pantera\CronMailer\Tests;
+namespace BagoesPantera\CronMailer\Tests;
 
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 use Orchestra\Testbench\TestCase as Orchestra;
-use Pantera\CronMailer\CronMailerServiceProvider;
+use BagoesPantera\CronMailer\CronMailerServiceProvider;
 
 abstract class TestCase extends Orchestra
 {
@@ -33,7 +33,7 @@ abstract class TestCase extends Orchestra
 
         $app['config']->set('mail.default', 'array');
 
-        $app['view']->addNamespace('cron-mailer-tests', __DIR__ . '/Fixtures/views');
+        $app['view']->addNamespace('cron-mailer-tests', __DIR__.'/Fixtures/views');
     }
 
     /**
@@ -41,7 +41,7 @@ abstract class TestCase extends Orchestra
      */
     protected function defineDatabaseMigrations(): void
     {
-        $migration = require __DIR__ . '/../database/migrations/create_pending_emails_table.php.stub';
+        $migration = require __DIR__.'/../database/migrations/create_pending_emails_table.php.stub';
         $migration->up();
 
         Schema::create('users', function (Blueprint $table) {
