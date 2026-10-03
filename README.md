@@ -20,17 +20,17 @@ A database-driven outbox mailer for Laravel without queue workers. Send asynchro
 
 - **Zero Queue Worker Setup** — No Redis, no Supervisor, no `queue:work` daemon required. E-mails are stored in your existing database and delivered straight from the scheduler.
 - **Non-Blocking Enqueueing** — The global `queueMail()` helper writes to your DB inside a try-catch, reports failures via Laravel's `report()`, and never bubbles an exception up to the HTTP request.
-- **Auto-Serialization via Reflection & Public Property Hydration** — Every public property of your mailable is captured. Eloquent models are stored as `[class, primary key]` pairs and reloaded with fresh data at send time via `findOrFail()`. Supports both constructor property promotion *and* free-form public properties.
+- **Auto-Serialization via Reflection & Public Property Hydration** — Every public property of your mailable is captured. Eloquent models are stored as `[class, primary key]` pairs and reloaded with fresh data at send time via `findOrFail()`. Supports both constructor property promotion _and_ free-form public properties.
 - **Automatic Retry & Per-Row Isolation** — A failure for one recipient increments its `attempts` counter, captures the exception message, and moves on. A broken row never blocks the rest of the batch.
 - **Laravel 10 – 13 Compatibility** — A single package version runs on Laravel 10, 11, 12, and 13 thanks to a wide `illuminate/*` constraint matrix.
 
 ## Requirements
 
-| Dependency | Constraint |
-|---|---|
-| PHP | `^8.2` |
-| Laravel | `^10.0 \|\| ^11.0 \|\| ^12.0 \|\| ^13.0` |
-| Database | Any PDO driver supported by Laravel (`mysql`, `pgsql`, `sqlite`, `sqlsrv`) |
+| Dependency | Constraint                                                                 |
+| ---------- | -------------------------------------------------------------------------- |
+| PHP        | `^8.2`                                                                     |
+| Laravel    | `^10.0 \|\| ^11.0 \|\| ^12.0 \|\| ^13.0`                                   |
+| Database   | Any PDO driver supported by Laravel (`mysql`, `pgsql`, `sqlite`, `sqlsrv`) |
 
 ## Installation
 
@@ -67,11 +67,41 @@ This creates the outbox table. Its name follows the value of `cron-mailer.table_
 
 All configuration lives in [config/cron-mailer.php](config/cron-mailer.php). After publishing the file, the following options are available:
 
-| Key | Default | Description |
-|---|---|---|
-| `table_name` | `'pending_emails'` | Database table used as the outbox. The migration reads this key dynamically, so rename it freely before running `migrate`. |
-| `max_attempts` | `3` | Hard cap on delivery attempts. Once a row's `attempts` column reaches this value the worker skips it permanently. |
-| `batch_size` | `10` | Maximum number of rows pulled from the outbox on every worker run. Keep it small enough to stay inside the scheduler's window. |
+| Key                 | Default            | Description                                                                                                                    |
+| ------------------- | ------------------ | ------------------------------------------------------------------------------------------------------------------------------ |
+| `table_name`        | `'pending_emails'` | Database table used as the outbox. The migration reads this key dynamically, so rename it freely before running `migrate`.     |
+| `max_attempts`      | `3`                | Hard cap on delivery attempts. Once a row's `attempts` column reaches this value the worker skips it permanently.              |
+| `batch_size`        | `10`               | Maximum number of rows pulled from the outbox on every worker run. Keep it small enough to stay inside the scheduler's window. |
+| `delete_after_send` | `true`             | What happens to a row after a successful delivery. `true` deletes it; `false` retains it as an audit trail (see below).        |
+
+### Delivery Audit Trail (`delete_after_send`)
+
+By default a successfully delivered e-mail is **deleted** from the outbox, so the table only ever holds work that still needs doing. Set `delete_after_send` to `false` if you need to keep a record of what was sent:
+
+```php
+// config/cron-mailer.php
+'delete_after_send' => false,
+```
+
+With that setting the worker marks the row instead of removing it:
+
+| Column          | Value after a successful send                |
+| --------------- | -------------------------------------------- |
+| `status`        | `sent`                                       |
+| `sent_at`       | timestamp of the successful delivery         |
+| `error_message` | `null` (cleared, even on a successful retry) |
+| `attempts`      | left untouched, so you keep the retry count  |
+
+```sql
+-- what your outbox looks like afterwards
+SELECT recipient_email, status, attempts, sent_at FROM pending_emails;
+```
+
+A few things worth knowing:
+
+- **`sent` rows are never re-processed.** The worker only selects `pending` and `failed` rows, so retained history is inert and safe to leave in place.
+- **You own the cleanup.** With `delete_after_send => false` the table grows forever unless you prune it. A scheduled `DB::table('pending_emails')->where('status', 'sent')->where('sent_at', '<', now()->subDays(30))->delete();` is a common companion.
+- **Failed rows are unaffected** — they stay in the table with `status = 'failed'` regardless of this setting, so retries keep working either way.
 
 ## Usage Guide
 
@@ -187,8 +217,11 @@ Schedule::command('cron-mail:process')
 #### Worker Selection Criteria
 
 Each run selects rows matching:
+
 - `status = 'pending'` **OR** `(status = 'failed' AND attempts < max_attempts)`,
-ordered by `created_at ASC`, limited to `batch_size` (or `--limit`).
+  ordered by `created_at ASC`, limited to `batch_size` (or `--limit`).
+
+Rows already marked `sent` (see [`delete_after_send`](#delivery-audit-trail-delete_after_send)) are never matched.
 
 The composite index `['status', 'attempts', 'created_at']` in the migration keeps this query cheap even on very large outboxes.
 
@@ -206,10 +239,11 @@ composer install --dev
 Expected output:
 
 ```
-OK (10 tests, 34 assertions)
+OK (14 tests, 52 assertions)
 ```
 
 The suite covers:
+
 - single-recipient & multi-recipient enqueue
 - correct payload shape for Eloquent models vs. scalars
 - fail-safe behaviour when the outbox table is missing
@@ -219,6 +253,9 @@ The suite covers:
 - `max_attempts` gating
 - retry below `max_attempts`
 - `batch_size` enforcement
+- audit-trail retention with `delete_after_send => false` (`status = 'sent'`, `sent_at` written, `error_message` cleared)
+- sent rows are never picked up again on subsequent runs
+- default `delete_after_send => true` still deletes
 
 ## License
 
