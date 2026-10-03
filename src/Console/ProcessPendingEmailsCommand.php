@@ -33,6 +33,7 @@ class ProcessPendingEmailsCommand extends Command
         $table = config('cron-mailer.table_name', 'pending_emails');
         $maxAttempts = (int) config('cron-mailer.max_attempts', 3);
         $batchSize = (int) ($this->option('limit') ?: config('cron-mailer.batch_size', 10));
+        $deleteAfterSend = (bool) config('cron-mailer.delete_after_send', true);
 
         $rows = DB::table($table)
             ->where(function ($query) use ($maxAttempts) {
@@ -61,7 +62,16 @@ class ProcessPendingEmailsCommand extends Command
 
                 Mail::to($row->recipient_email)->send($mailable);
 
-                DB::table($table)->where('id', $row->id)->delete();
+                if ($deleteAfterSend) {
+                    DB::table($table)->where('id', $row->id)->delete();
+                } else {
+                    DB::table($table)->where('id', $row->id)->update([
+                        'status' => 'sent',
+                        'sent_at' => now(),
+                        'error_message' => null,
+                        'updated_at' => now(),
+                    ]);
+                }
 
                 $sent++;
             } catch (Throwable $e) {

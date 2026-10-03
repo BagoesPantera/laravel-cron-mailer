@@ -196,6 +196,97 @@ class CronMailerTest extends TestCase
     }
 
     #[Test]
+    public function it_keeps_the_row_as_an_audit_trail_when_delete_after_send_is_disabled(): void
+    {
+        config()->set('cron-mailer.delete_after_send', false);
+
+        $user = User::create(['name' => 'Ada', 'email' => 'ada@example.com']);
+
+        Mail::fake();
+
+        queueMail(new OrderShipped($user, 'ORD-10'), $user->email);
+
+        $this->artisan('cron-mail:process')->assertSuccessful();
+
+        $this->assertDatabaseCount('pending_emails', 1);
+
+        $row = DB::table('pending_emails')->first();
+
+        $this->assertSame('sent', $row->status);
+        $this->assertNotNull($row->sent_at);
+        $this->assertNull($row->error_message);
+        $this->assertSame(0, (int) $row->attempts);
+
+        Mail::assertSent(OrderShipped::class);
+    }
+
+    #[Test]
+    public function it_clears_a_previous_error_when_the_retry_succeeds_with_audit_trail_enabled(): void
+    {
+        config()->set('cron-mailer.delete_after_send', false);
+
+        $user = User::create(['name' => 'Ada', 'email' => 'ada@example.com']);
+
+        Mail::fake();
+
+        DB::table('pending_emails')->insert([
+            'recipient_email' => $user->email,
+            'mailable_class' => OrderShipped::class,
+            'payload' => json_encode([
+                'user' => ['__is_model' => true, 'class' => User::class, 'id' => $user->getKey()],
+                'orderNumber' => ['__is_model' => false, 'value' => 'ORD-11'],
+            ]),
+            'status' => 'failed',
+            'attempts' => 1,
+            'error_message' => 'SMTP connection timed out',
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        $this->artisan('cron-mail:process')->assertSuccessful();
+
+        $row = DB::table('pending_emails')->first();
+
+        $this->assertSame('sent', $row->status);
+        $this->assertNotNull($row->sent_at);
+        $this->assertNull($row->error_message);
+        $this->assertSame(1, (int) $row->attempts);
+    }
+
+    #[Test]
+    public function it_never_reprocesses_rows_already_marked_as_sent(): void
+    {
+        config()->set('cron-mailer.delete_after_send', false);
+
+        $user = User::create(['name' => 'Ada', 'email' => 'ada@example.com']);
+
+        Mail::fake();
+
+        queueMail(new OrderShipped($user, 'ORD-12'), $user->email);
+
+        $this->artisan('cron-mail:process')->assertSuccessful();
+        $this->artisan('cron-mail:process')->assertSuccessful();
+
+        $this->assertDatabaseCount('pending_emails', 1);
+
+        Mail::assertSentCount(1);
+    }
+
+    #[Test]
+    public function it_deletes_the_row_by_default_when_delete_after_send_is_enabled(): void
+    {
+        $user = User::create(['name' => 'Ada', 'email' => 'ada@example.com']);
+
+        Mail::fake();
+
+        queueMail(new OrderShipped($user, 'ORD-13'), $user->email);
+
+        $this->artisan('cron-mail:process')->assertSuccessful();
+
+        $this->assertDatabaseCount('pending_emails', 0);
+    }
+
+    #[Test]
     public function it_only_processes_the_configured_batch_size(): void
     {
         config()->set('cron-mailer.batch_size', 2);

@@ -39,4 +39,18 @@ return [
 
     'batch_size' => 10,
 
+    /*
+    |--------------------------------------------------------------------------
+    | Delete After Send
+    |--------------------------------------------------------------------------
+    |
+    | Determines what happens to a row once its e-mail has been delivered.
+    | When true (default) the row is removed, keeping the outbox lean. When
+    | false the row is retained with a "sent" status and a sent_at timestamp,
+    | which turns the table into a delivery audit trail.
+    |
+    */
+
+    'delete_after_send' => true,
+
 ];
