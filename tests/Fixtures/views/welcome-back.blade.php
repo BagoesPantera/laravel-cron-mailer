@@ -1,0 +1,1 @@
+<p>{{ $headline }} {{ $user->name }}.</p>

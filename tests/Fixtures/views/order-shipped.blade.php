@@ -1,0 +1,1 @@
+<p>Order {{ $orderNumber }} shipped to {{ $user->name }}.</p>
